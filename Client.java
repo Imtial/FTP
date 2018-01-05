@@ -1,9 +1,9 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 
 public class Client {
+    static private String path = "/home/enan/Desktop/t1.txt";
+    static private File file = new File(path);
     public static void main(String[] args) throws IOException {
 //        String serverAddress = args[0];
         String serverAddress = "localhost";
@@ -15,6 +15,19 @@ public class Client {
         DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
         System.out.println(in.readUTF());
         out.writeUTF("Thankyou");
+
+        FileOutputStream fo = new FileOutputStream(file);
+        byte [] bytes = new byte[1024];
+        int noOfBytes;
+        while ((noOfBytes = in.read(bytes)) != -1) {
+            fo.write(bytes, 0, noOfBytes);
+        }
+
+        /*
+        FileWriter fw = new FileWriter(file);
+        fw.write(in.read());
+        */
+
         in.close();
         out.close();
         clientSocket.close();
