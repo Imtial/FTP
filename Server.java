@@ -30,6 +30,7 @@ public class Server implements Runnable {
         path = in.readUTF();
         while (!(new File(path)).exists()){
             out.writeBoolean(false);
+            path = in.readUTF();
         }
         out.writeBoolean(true);
         file = new File(path);
@@ -54,6 +55,7 @@ public class Server implements Runnable {
         path = in.readUTF();
         while (!(new File(path)).exists()) {
             out.writeBoolean(false);
+            path = in.readUTF();
         }
         out.writeBoolean(true);
         file = new File(path);
@@ -76,9 +78,11 @@ public class Server implements Runnable {
             out.writeBoolean(false);
             if(!(new File(path)).exists()) {
                 out.writeUTF("Doesn't exist");
+                path = in.readUTF();
             }
             else if (!(new File(path)).isDirectory()) {
                 out.writeUTF("Not a directory");
+                path = in.readUTF();
             }
         }
         out.writeBoolean(true);
