@@ -60,7 +60,6 @@ public class Client {
             fin.close();
         }
         else if (choice == 3) {
-            ObjectInputStream obis = new ObjectInputStream(clientSocket.getInputStream());
             System.out.println(in.readUTF());
             t_string = scan.nextLine();
             out.writeUTF(t_string);
@@ -69,6 +68,7 @@ public class Client {
                 t_string = scan.nextLine();
                 out.writeUTF(t_string);
             }
+            ObjectInputStream obis = new ObjectInputStream(is);
             String [] lists = (String []) obis.readObject();
             for (String list : lists) {
                 System.out.println(list);

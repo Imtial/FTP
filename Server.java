@@ -22,7 +22,6 @@ public class Server implements Runnable {
     private void download() throws IOException {
         DataInputStream in = new DataInputStream(is);
         DataOutputStream out = new DataOutputStream(os);
-        FileInputStream fin = new FileInputStream(file);
 
         byte [] bytes = new byte[1024];
         int noOfBytes;
@@ -34,6 +33,8 @@ public class Server implements Runnable {
         }
         out.writeBoolean(true);
         file = new File(path);
+
+        FileInputStream fin = new FileInputStream(file);
         while ((noOfBytes = fin.read(bytes)) != -1) {
             os.write(bytes, 0, noOfBytes);
         }
@@ -45,7 +46,6 @@ public class Server implements Runnable {
     private void upload() throws IOException {
         DataOutputStream out = new DataOutputStream(os);
         DataInputStream in = new DataInputStream(is);
-        FileOutputStream fout = new FileOutputStream(file);
 
         byte [] bytes = new byte[1024];
         int noOfBytes;
@@ -57,6 +57,8 @@ public class Server implements Runnable {
         }
         out.writeBoolean(true);
         file = new File(path);
+
+        FileOutputStream fout = new FileOutputStream(file);
         while ((noOfBytes = is.read(bytes)) != -1) {
             fout.write(bytes,0, noOfBytes);
         }
@@ -67,7 +69,6 @@ public class Server implements Runnable {
     private void ls() throws IOException {
         DataOutputStream out = new DataOutputStream(os);
         DataInputStream in = new DataInputStream(is);
-        ObjectOutputStream objs = new ObjectOutputStream(os);
 
         out.writeUTF("Enter the path of the directory : ");
         path = in.readUTF();
@@ -80,10 +81,13 @@ public class Server implements Runnable {
                 out.writeUTF("Not a directory");
             }
         }
-        String[] lists = (new File(path)).list();
-        objs.writeObject(lists);
+        out.writeBoolean(true);
 
+        String[] lists = (new File(path)).list();
+        ObjectOutputStream objs = new ObjectOutputStream(os);
+        objs.writeObject(lists);
         objs.close();
+
         out.close();
         in.close();
     }
