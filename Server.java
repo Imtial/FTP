@@ -29,6 +29,10 @@ public class Server implements Runnable {
 
         out.writeUTF("Enter the file path : ");
         path = in.readUTF();
+        while (!(new File(path)).exists()){
+            out.writeBoolean(false);
+        }
+        out.writeBoolean(true);
         file = new File(path);
         while ((noOfBytes = fin.read(bytes)) != -1) {
             os.write(bytes, 0, noOfBytes);
@@ -48,6 +52,10 @@ public class Server implements Runnable {
 
         out.writeUTF("Enter the file path : ");
         path = in.readUTF();
+        while (!(new File(path)).exists()) {
+            out.writeBoolean(false);
+        }
+        out.writeBoolean(true);
         file = new File(path);
         while ((noOfBytes = is.read(bytes)) != -1) {
             fout.write(bytes,0, noOfBytes);
@@ -63,6 +71,15 @@ public class Server implements Runnable {
 
         out.writeUTF("Enter the path of the directory : ");
         path = in.readUTF();
+        while (!(new File(path)).exists() || !(new File(path).isDirectory())) {
+            out.writeBoolean(false);
+            if(!(new File(path)).exists()) {
+                out.writeUTF("Doesn't exist");
+            }
+            else if (!(new File(path)).isDirectory()) {
+                out.writeUTF("Not a directory");
+            }
+        }
         String[] lists = (new File(path)).list();
         objs.writeObject(lists);
 

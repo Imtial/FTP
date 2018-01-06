@@ -29,6 +29,11 @@ public class Client {
             System.out.println(in.readUTF());
             t_string = scan.nextLine();
             out.writeUTF(t_string);
+            while (!(in.readBoolean())) {
+                System.out.println("Path doesn't exist");
+                t_string = scan.nextLine();
+                out.writeUTF(t_string);
+            }
             FileOutputStream fout = new FileOutputStream(file);
             byte[] bytes = new byte[1024];
             int noOfBytes;
@@ -41,6 +46,11 @@ public class Client {
             System.out.println(in.readUTF());
             t_string = scan.nextLine();
             out.writeUTF(t_string);
+            while (!(in.readBoolean())) {
+                System.out.println("Path doesn't exist");
+                t_string = scan.nextLine();
+                out.writeUTF(t_string);
+            }
             FileInputStream fin = new FileInputStream(file);
             byte [] bytes = new byte[1024];
             int noOfBytes;
@@ -54,6 +64,11 @@ public class Client {
             System.out.println(in.readUTF());
             t_string = scan.nextLine();
             out.writeUTF(t_string);
+            while (!(in.readBoolean())) {
+                System.out.println(in.readUTF());
+                t_string = scan.nextLine();
+                out.writeUTF(t_string);
+            }
             String [] lists = (String []) obis.readObject();
             for (String list : lists) {
                 System.out.println(list);
