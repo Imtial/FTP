@@ -7,50 +7,64 @@ public class Client {
     static private String path = "/home/enan/Desktop/t1.txt";
     static private File file = new File(path);
 
-    public static void main(String[] args) throws IOException {
-//        String serverAddress = args[0];
-        String serverAddress = "localhost";
-//        int serverPort = Integer.parseInt(args[1]);
-        int serverPort = 9999;
-
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         Scanner scan = new Scanner(System.in);
-
-        Socket clientSocket = new Socket(serverAddress, serverPort);
+//        Socket clientSocket = new Socket(args[0], args[1]);
+        Socket clientSocket = new Socket("localhost", 9999);
         System.out.println("Connected to " + clientSocket.getRemoteSocketAddress());
 
-        DataInputStream in = new DataInputStream(clientSocket.getInputStream());
-        DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
+        InputStream is = clientSocket.getInputStream();
+        OutputStream os = clientSocket.getOutputStream();
+        DataInputStream in = new DataInputStream(is);
+        DataOutputStream out = new DataOutputStream(os);
 
-        System.out.println(in.readUTF());
+        System.out.println(clientSocket.getRemoteSocketAddress() + " : " + in.readUTF());
         out.writeUTF("Thankyou");
         System.out.println(in.readUTF());
         String t_string = scan.nextLine();
         int choice = Integer.parseInt(t_string);
         out.writeUTF(t_string);
-        System.out.println(in.readUTF());
-        t_string = scan.nextLine();
-        out.writeUTF(t_string);
 
         if (choice == 1) {
-            FileOutputStream fo = new FileOutputStream(file);
+            System.out.println(in.readUTF());
+            t_string = scan.nextLine();
+            out.writeUTF(t_string);
+            FileOutputStream fout = new FileOutputStream(file);
             byte[] bytes = new byte[1024];
             int noOfBytes;
             while ((noOfBytes = in.read(bytes)) != -1) {
-                fo.write(bytes, 0, noOfBytes);
+                fout.write(bytes, 0, noOfBytes);
             }
+            fout.close();
         }
         else if(choice == 2) {
+            System.out.println(in.readUTF());
+            t_string = scan.nextLine();
+            out.writeUTF(t_string);
             FileInputStream fin = new FileInputStream(file);
             byte [] bytes = new byte[1024];
             int noOfBytes;
             while((noOfBytes = fin.read(bytes)) != -1) {
                 out.write(bytes, 0, noOfBytes);
             }
+            fin.close();
         }
-
+        else if (choice == 3) {
+            ObjectInputStream obis = new ObjectInputStream(clientSocket.getInputStream());
+            System.out.println(in.readUTF());
+            t_string = scan.nextLine();
+            out.writeUTF(t_string);
+            String [] lists = (String []) obis.readObject();
+            for (String list : lists) {
+                System.out.println(list);
+            }
+            obis.close();
+        }
 
         in.close();
         out.close();
+        is.close();
+        os.close();
         clientSocket.close();
     }
 }

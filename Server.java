@@ -6,10 +6,11 @@ import java.net.SocketTimeoutException;
 public class Server implements Runnable {
     private Thread t;
     private ServerSocket serverSocket;
-    private Socket socket;
     private int timeOut = (int) Math.pow(10,5);
     private String path = "/home/enan/Desktop/t.txt";
     private File file = new File(path);
+    private OutputStream os = null;
+    private InputStream is = null;
 
     Server(int port) throws IOException {
         serverSocket = new ServerSocket(port);
@@ -18,9 +19,11 @@ public class Server implements Runnable {
         t.start();
     }
 
-    private void download(DataOutputStream out, DataInputStream in) throws IOException {
+    private void download() throws IOException {
+        DataInputStream in = new DataInputStream(is);
+        DataOutputStream out = new DataOutputStream(os);
         FileInputStream fin = new FileInputStream(file);
-        OutputStream os = socket.getOutputStream();
+
         byte [] bytes = new byte[1024];
         int noOfBytes;
 
@@ -30,10 +33,16 @@ public class Server implements Runnable {
         while ((noOfBytes = fin.read(bytes)) != -1) {
             os.write(bytes, 0, noOfBytes);
         }
+
+        fin.close();
+        in.close();
+        out.close();
     }
-    private void upload(DataOutputStream out, DataInputStream in) throws IOException {
+    private void upload() throws IOException {
+        DataOutputStream out = new DataOutputStream(os);
+        DataInputStream in = new DataInputStream(is);
         FileOutputStream fout = new FileOutputStream(file);
-        InputStream is = socket.getInputStream();
+
         byte [] bytes = new byte[1024];
         int noOfBytes;
 
@@ -43,31 +52,55 @@ public class Server implements Runnable {
         while ((noOfBytes = is.read(bytes)) != -1) {
             fout.write(bytes,0, noOfBytes);
         }
+        fout.close();
+        out.close();
+        in.close();
+    }
+    private void ls() throws IOException {
+        DataOutputStream out = new DataOutputStream(os);
+        DataInputStream in = new DataInputStream(is);
+        ObjectOutputStream objs = new ObjectOutputStream(os);
+
+        out.writeUTF("Enter the path of the directory : ");
+        path = in.readUTF();
+        String[] lists = (new File(path)).list();
+        objs.writeObject(lists);
+
+        objs.close();
+        out.close();
+        in.close();
     }
 
     @Override
     public void run() {
         try {
             System.out.println("Waiting on port " + serverSocket.getLocalPort());
-            socket = serverSocket.accept();
+            Socket socket = serverSocket.accept();
             System.out.println("Connected to " + socket.getRemoteSocketAddress());
+            os = socket.getOutputStream();
+            is = socket.getInputStream();
+            DataOutputStream out = new DataOutputStream(os);
+            DataInputStream in = new DataInputStream(is);
 
-            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
             out.writeUTF("Thank you for connecting to " + serverSocket.getInetAddress());
-            DataInputStream in = new DataInputStream(socket.getInputStream());
-            System.out.println(socket.getRemoteSocketAddress() + in.readUTF());
+            System.out.println(socket.getRemoteSocketAddress() + " : " + in.readUTF());
 
             String menu = "1. Download" + "\n" +
-                          "2. Upload" + "\n";
+                          "2. Upload" + "\n" +
+                          "3. List" + "\n";
+
 
             out.writeUTF(menu);
             int choice = Integer.parseInt(in.readUTF());
             switch (choice) {
                 case 1:
-                    download(out, in);
+                    download();
                     break;
                 case 2:
-                    upload(out, in);
+                    upload();
+                    break;
+                case 3:
+                    ls();
                     break;
                 default:
                     break;
@@ -75,7 +108,8 @@ public class Server implements Runnable {
 
             in.close();
             out.close();
-
+            is.close();
+            os.close();
             socket.close();
         } catch (SocketTimeoutException e) {
             System.out.println("Server timed out!");
