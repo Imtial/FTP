@@ -1,20 +1,20 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 
-public class Server implements Runnable {
-    private Thread t;
-    private ServerSocket serverSocket;
-    private int timeOut = (int) Math.pow(10,5);
+
+class Serve implements Runnable {
     private String path = "/home/enan/Desktop/t.txt";
     private File file = new File(path);
-    private OutputStream os = null;
+    private Thread t;
+    protected Socket socket = null;
     private InputStream is = null;
+    private OutputStream os = null;
 
-    Server(int port) throws IOException {
-        serverSocket = new ServerSocket(port);
-        serverSocket.setSoTimeout(timeOut);
+    Serve(Socket socket) throws IOException {
+        this.socket = socket;
+        is = socket.getInputStream();
+        os = socket.getOutputStream();
         t = new Thread(this);
         t.start();
     }
@@ -33,20 +33,24 @@ public class Server implements Runnable {
             path = in.readUTF();
         }
         out.writeBoolean(true);
+
         file = new File(path);
 
+        OutputStream os = socket.getOutputStream();
         FileInputStream fin = new FileInputStream(file);
+        long len = file.length();
+        out.writeLong(len);
         while ((noOfBytes = fin.read(bytes)) != -1) {
-            os.write(bytes, 0, noOfBytes);
+            out.write(bytes, 0, noOfBytes);
         }
+//        out.writeBoolean(true);
+        while (!in.readBoolean());
 
         fin.close();
-        in.close();
-        out.close();
     }
     private void upload() throws IOException {
-        DataOutputStream out = new DataOutputStream(os);
-        DataInputStream in = new DataInputStream(is);
+        DataInputStream in = new DataInputStream(socket.getInputStream());
+        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
         byte [] bytes = new byte[1024];
         int noOfBytes;
@@ -58,19 +62,25 @@ public class Server implements Runnable {
             path = in.readUTF();
         }
         out.writeBoolean(true);
+
         file = new File(path);
 
+        long len = in.readLong();
+        InputStream is = socket.getInputStream();
         FileOutputStream fout = new FileOutputStream(file);
+        long tempLen = 0;
+//        while (!in.readBoolean());
         while ((noOfBytes = is.read(bytes)) != -1) {
             fout.write(bytes,0, noOfBytes);
+            tempLen += noOfBytes;
+            if (tempLen>=len) break;
         }
+//        while (!in.readBoolean());
         fout.close();
-        out.close();
-        in.close();
     }
     private void ls() throws IOException {
-        DataOutputStream out = new DataOutputStream(os);
-        DataInputStream in = new DataInputStream(is);
+        DataInputStream in = new DataInputStream(socket.getInputStream());
+        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
         out.writeUTF("Enter the path of the directory : ");
         path = in.readUTF();
@@ -85,67 +95,78 @@ public class Server implements Runnable {
                 path = in.readUTF();
             }
         }
+
         out.writeBoolean(true);
 
         String[] lists = (new File(path)).list();
-        ObjectOutputStream objs = new ObjectOutputStream(os);
+        ObjectOutputStream objs = new ObjectOutputStream(socket.getOutputStream());
         objs.writeObject(lists);
-        objs.close();
-
-        out.close();
-        in.close();
     }
 
     @Override
     public void run() {
         try {
-            System.out.println("Waiting on port " + serverSocket.getLocalPort());
-            Socket socket = serverSocket.accept();
             System.out.println("Connected to " + socket.getRemoteSocketAddress());
-            os = socket.getOutputStream();
-            is = socket.getInputStream();
-            DataOutputStream out = new DataOutputStream(os);
             DataInputStream in = new DataInputStream(is);
+            DataOutputStream out = new DataOutputStream(os);
 
-            out.writeUTF("Thank you for connecting to " + serverSocket.getInetAddress());
-            System.out.println(socket.getRemoteSocketAddress() + " : " + in.readUTF());
+            out.writeUTF("Thankyou for connecting to " + socket.getLocalPort());
+            System.out.println(in.readUTF());
 
             String menu = "1. Download" + "\n" +
-                          "2. Upload" + "\n" +
-                          "3. List" + "\n";
+                        "2. Upload" + "\n" +
+                        "3. List" + "\n" + 
+                        "4. Exit" +"\n";
 
+            boolean breakWhile = false;
+            while (!breakWhile) {
+                out.writeUTF(menu);
+                int choice = Integer.parseInt(in.readUTF());
+                switch (choice) {
+                    case 1:
+                        download();
+                        break;
+                    case 2:
+                        upload();
+                        break;
+                    case 3:
+                        ls();
+                        break;
+                    case 4:
+                        breakWhile = true;
+                    default:
 
-            out.writeUTF(menu);
-            int choice = Integer.parseInt(in.readUTF());
-            switch (choice) {
-                case 1:
-                    download();
-                    break;
-                case 2:
-                    upload();
-                    break;
-                case 3:
-                    ls();
-                    break;
-                default:
-                    break;
+                        break;
+                }
             }
 
-            in.close();
-            out.close();
-            is.close();
-            os.close();
-            socket.close();
-        } catch (SocketTimeoutException e) {
-            System.out.println("Server timed out!");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+}
 
+
+public class Server {
     public static void main(String[] args) throws IOException {
 //        int port = Integer.parseInt(args[0]);
         int port = 9999;
-        new Server(port);
+
+        ServerSocket serverSocket = null;
+        Socket socket = null;
+        try {
+            serverSocket = new ServerSocket(port);
+            System.out.println("Waiting on port " + serverSocket.getLocalPort());
+        } catch(IOException e){
+            e.printStackTrace();
+        }
+        while (true) {
+            try {
+                socket = serverSocket.accept();
+            } catch(IOException e){
+                e.printStackTrace();
+            }
+            new Serve(socket);
+        }
     }
 }
