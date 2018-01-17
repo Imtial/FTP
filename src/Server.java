@@ -1,83 +1,73 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-
+import java.util.Collections;
+import java.util.Vector;
 
 class Serve implements Runnable {
-    private String path = "/home/enan/Desktop/t.txt";
-    private File file = new File(path);
-    private Thread t;
-    protected Socket socket = null;
-    private InputStream is = null;
-    private OutputStream os = null;
+    private Socket socket;
+    private InputStream is;
+    private OutputStream os;
 
     Serve(Socket socket) throws IOException {
         this.socket = socket;
         is = socket.getInputStream();
         os = socket.getOutputStream();
-        t = new Thread(this);
-        t.start();
+        new Thread(this).start();
     }
+    private void download(String path) {
 
-    private void download() throws IOException {
-        DataInputStream in = new DataInputStream(is);
-        DataOutputStream out = new DataOutputStream(os);
-
-        byte [] bytes = new byte[1024];
+        Vector<Byte> fileBytes = new Vector<>();
+        byte[] bytes = new byte[1024];
         int noOfBytes;
 
-        out.writeUTF("Enter the file path : ");
-        path = in.readUTF();
-        while (!(new File(path)).exists()){
-            out.writeBoolean(false);
-            path = in.readUTF();
+        File file = new File(path);
+        try (FileInputStream fin = new FileInputStream(file)) {
+            while ((noOfBytes = fin.read(bytes)) != -1) {
+                Byte[] wrapBytes = new Byte[noOfBytes];
+                for (int i = 0; i < noOfBytes; ++i)
+                    wrapBytes[i] = bytes[i];
+                Collections.addAll(fileBytes, wrapBytes);
+            }
+        } catch (IOException e) {
+            System.out.println("In ObjectOutputStream objout");
         }
-        out.writeBoolean(true);
 
-        file = new File(path);
+        long len = fileBytes.size();
+        System.out.println(len);
 
-        OutputStream os = socket.getOutputStream();
-        FileInputStream fin = new FileInputStream(file);
-        long len = file.length();
-        out.writeLong(len);
-        while ((noOfBytes = fin.read(bytes)) != -1) {
-            out.write(bytes, 0, noOfBytes);
+        FileByte fb = new FileByte(fileBytes, file.getName());
+        try {
+            ObjectOutputStream objout = new ObjectOutputStream(os);
+            objout.writeObject(fb);
+        } catch (IOException e) {
+            System.out.println("In ObjectOutputStream objout");
+            e.printStackTrace();
         }
-//        out.writeBoolean(true);
-        while (!in.readBoolean());
-
-        fin.close();
     }
-    private void upload() throws IOException {
-        DataInputStream in = new DataInputStream(socket.getInputStream());
-        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
-        byte [] bytes = new byte[1024];
-        int noOfBytes;
 
-        out.writeUTF("Enter the file path : ");
-        path = in.readUTF();
-        while (!(new File(path)).exists()) {
-            out.writeBoolean(false);
-            path = in.readUTF();
+    private void upload(String path) throws IOException {
+        path = "/home/enan/Desktop/contest";
+        ObjectInputStream objin = new ObjectInputStream(is);
+        Object object = null;
+        try {
+            object = objin.readObject();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
-        out.writeBoolean(true);
-
-        file = new File(path);
-
-        long len = in.readLong();
-        InputStream is = socket.getInputStream();
-        FileOutputStream fout = new FileOutputStream(file);
-        long tempLen = 0;
-//        while (!in.readBoolean());
-        while ((noOfBytes = is.read(bytes)) != -1) {
-            fout.write(bytes,0, noOfBytes);
-            tempLen += noOfBytes;
-            if (tempLen>=len) break;
+        if (object != null && object instanceof FileByte) {
+            System.out.println("Yeah");
+            FileByte fileByte = (FileByte) object;
+            FileOutputStream fout = new FileOutputStream(path + "/" + fileByte.getName());
+            Byte[] tBytes = fileByte.getFileBytes().toArray(new Byte[fileByte.getFileBytes().size()]);
+            byte[] t_bytes = new byte[tBytes.length];
+            for (int i = 0; i < t_bytes.length; ++i)
+                t_bytes[i] = tBytes[i];
+            fout.write(t_bytes);
         }
-//        while (!in.readBoolean());
-        fout.close();
     }
+    /*
     private void ls() throws IOException {
         DataInputStream in = new DataInputStream(socket.getInputStream());
         DataOutputStream out = new DataOutputStream(socket.getOutputStream());
@@ -102,6 +92,7 @@ class Serve implements Runnable {
         ObjectOutputStream objs = new ObjectOutputStream(socket.getOutputStream());
         objs.writeObject(lists);
     }
+    */
 
     @Override
     public void run() {
@@ -111,31 +102,30 @@ class Serve implements Runnable {
             DataOutputStream out = new DataOutputStream(os);
 
             out.writeUTF("Thankyou for connecting to " + socket.getLocalPort());
-            System.out.println(in.readUTF());
+            System.out.println("Client : " + in.readUTF());
 
-            String menu = "1. Download" + "\n" +
-                        "2. Upload" + "\n" +
-                        "3. List" + "\n" + 
-                        "4. Exit" +"\n";
 
             boolean breakWhile = false;
             while (!breakWhile) {
-                out.writeUTF(menu);
-                int choice = Integer.parseInt(in.readUTF());
-                switch (choice) {
-                    case 1:
-                        download();
+                String clientMessage = in.readUTF();
+                if(clientMessage.equals("exit")) breakWhile=true;
+                String [] client = clientMessage.split(",");
+                String cmd = client[0];
+                String path = client[1];
+                switch (cmd) {
+                    case "download":
+                        download(path);
                         break;
-                    case 2:
-                        upload();
+                    case "upload":
+                        upload(path);
                         break;
-                    case 3:
-                        ls();
+                    case "ls":
+//                        ls();
                         break;
-                    case 4:
+                    case "exit":
                         breakWhile = true;
+                        break;
                     default:
-
                         break;
                 }
             }
@@ -149,8 +139,10 @@ class Serve implements Runnable {
 
 public class Server {
     public static void main(String[] args) throws IOException {
-//        int port = Integer.parseInt(args[0]);
-        int port = 9999;
+
+        int port;
+        if(args.length == 0) port = 9999;
+        else port = Integer.parseInt(args[0]);
 
         ServerSocket serverSocket = null;
         Socket socket = null;
@@ -168,5 +160,6 @@ public class Server {
             }
             new Serve(socket);
         }
+
     }
 }
