@@ -16,7 +16,7 @@ cause although vector can allocate memory dynamically, while running the program
 "java.lang.OutOfMemoryError: Java heap space" error. 
 
 
-Work to be done:  
+**Work to be done**:  
 Now, the two static var downloadRequest and uploadRequest in GetServed class is to be used to
 refrain the client from giving two request of same king at a time. Client will be able to send 
 request but new threads will not be created until previous threads are closed.
